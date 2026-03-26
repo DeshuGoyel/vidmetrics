@@ -1,0 +1,1266 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           VIDMETRICS — COMPLETE MVP BUILD SPECIFICATION          ║
+║     YouTube Competitor Intelligence Platform — Ship-Ready        ║
+╚══════════════════════════════════════════════════════════════════╝
+
+You are an elite full-stack engineer + product designer with 10 years of 
+SaaS experience. Build a COMPLETE, FULLY WORKING, production-quality web 
+application called "VidMetrics" from this single specification.
+
+RULES:
+→ Zero placeholder text. Zero TODO comments. Zero mock UI shells.
+→ Every component is fully implemented with real logic.
+→ Every interaction works. Every animation plays. Every API call executes.
+→ The app must be deployable to Vercel with zero modifications.
+→ If an API key is missing, fall back to Demo Mode automatically (never crash).
+→ Write clean TypeScript throughout. No `any` types unless absolutely necessary.
+
+══════════════════════════════════════════════════════════════════
+                     1. TECH STACK
+══════════════════════════════════════════════════════════════════
+
+Framework:    Next.js 14 (App Router + TypeScript + strict mode)
+Styling:      Tailwind CSS v3 (custom config, NO default colors used)
+Animation:    Framer Motion v11 (every transition, every micro-interaction)
+3D:           @react-three/fiber + @react-three/drei (hero only, lazy loaded)
+Charts:       Recharts (AreaChart, BarChart, RadarChart, LineChart)
+State:        Zustand v4
+Icons:        Lucide React
+UI Radix:     @radix-ui/react-dialog, select, tabs, tooltip, dropdown-menu
+Utilities:    date-fns, clsx, tailwind-merge
+Export:       Browser-native CSV blob + window.print() for PDF
+HTTP:         Native fetch (server-side only, API key never exposed)
+Deploy:       Vercel Edge Runtime
+
+Install command (run this first):
+npm install framer-motion recharts lucide-react zustand date-fns clsx 
+tailwind-merge @radix-ui/react-dialog @radix-ui/react-select 
+@radix-ui/react-tabs @radix-ui/react-tooltip @radix-ui/react-dropdown-menu
+@react-three/fiber @react-three/drei three @types/three
+
+══════════════════════════════════════════════════════════════════
+                  2. DESIGN SYSTEM — DEEP SPACE DARK
+══════════════════════════════════════════════════════════════════
+
+PHILOSOPHY:
+Minimalist dark SaaS aesthetic. Think Linear.app meets Vercel Dashboard 
+meets NASA mission control. Every pixel intentional. No decorative noise.
+Data is the hero — UI is the frame.
+
+──────────────────── TOKENS (tailwind.config.ts) ─────────────────
+
+colors: {
+  void:     '#03060a',        // body background
+  base:     '#060c14',        // main surface  
+  surface:  '#0b1520',        // card backgrounds
+  elevated: '#101e2e',        // hover, active states
+  border:   '#162338',        // all borders/dividers
+  blue: {
+    DEFAULT: '#2563eb',
+    dim:     '#1d4ed8',
+    glow:    'rgba(37,99,235,0.35)',
+  },
+  cyan: {
+    DEFAULT: '#06b6d4',
+    dim:     '#0891b2',
+    glow:    'rgba(6,182,212,0.25)',
+  },
+  violet: {
+    DEFAULT: '#7c3aed',
+    glow:    'rgba(124,58,237,0.25)',
+  },
+  green:  '#10b981',
+  amber:  '#f59e0b',
+  red:    '#ef4444',
+  text: {
+    primary:   '#f1f5f9',
+    secondary: '#94a3b8',
+    muted:     '#475569',
+    faint:     '#1e3048',
+  }
+}
+
+fontFamily: {
+  sans: ['Inter', 'sans-serif'],
+  mono: ['JetBrains Mono', 'monospace'],
+}
+
+─────────────────── globals.css RULES ───────────────────────────
+
+1. Body: bg-void, text-text-primary, font-sans, antialiased
+2. All scrollbars: width 4px, track bg-surface, thumb bg-border,
+   hover thumb bg-blue — styled via ::-webkit-scrollbar
+3. Selection: bg-blue/30 text-text-primary
+4. Focus rings: 2px solid blue, offset 2px void bg
+5. ::placeholder: text-text-muted
+
+─────────────────── COMPONENT DESIGN LANGUAGE ───────────────────
+
+Glass Cards:
+  background: rgba(11,21,32,0.7)
+  backdrop-filter: blur(20px) saturate(150%)
+  border: 1px solid rgba(22,35,56,0.8)
+  border-radius: 16px
+  box-shadow: 0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)
+
+Hover state (cards):
+  translateY(-3px)
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(37,99,235,0.1)
+  transition: 200ms cubic-bezier(0.4, 0, 0.2, 1)
+
+Gradient accent borders (use ::before pseudo on selected cards):
+  background: linear-gradient(135deg, rgba(37,99,235,0.5), rgba(6,182,212,0.3), transparent)
+  padding: 1px (so border appears as gradient)
+
+Primary Button (GlowButton):
+  bg: blue, text: white, rounded-xl, px-6 py-3, font-medium
+  box-shadow: 0 0 20px rgba(37,99,235,0.4)
+  hover: bg-blue-dim, shadow intensifies, translateY(-1px)
+  active: translateY(0)
+  loading: spinner + "Analyzing..." text, pointer-events-none
+
+Numbers/Metrics: font-mono class always, tabular-nums
+
+Dividers: 1px border-border/60
+
+──────────────────── TYPOGRAPHY SCALE ───────────────────────────
+
+Display:  text-5xl font-bold tracking-tight (hero headline)
+H1:       text-3xl font-bold (page titles)
+H2:       text-xl font-semibold (section headers)
+H3:       text-base font-semibold (card titles)
+Body:     text-sm text-text-secondary leading-relaxed
+Caption:  text-xs text-text-muted uppercase tracking-wider
+Metric:   text-3xl font-mono font-bold (KPI numbers)
+Code:     text-sm font-mono bg-surface px-1.5 py-0.5 rounded
+
+──────────────────── ANIMATION TOKENS ───────────────────────────
+
+Page enter:      opacity 0→1 + y 12→0, duration 0.4s ease-out
+Stagger delay:   0.05s per child item
+Card hover:      y -3px, 200ms ease
+Number count-up: 1200ms easeOutExpo via requestAnimationFrame
+Skeleton shimmer: translateX -100%→100%, 1.5s infinite, gradient overlay
+Toast slide-in:   x 100→0, opacity 0→1, spring(stiffness:300, damping:30)
+Chart bars:       initial scaleY:0, animate scaleY:1, 600ms stagger
+Drawer open:      x 100%→0, 350ms spring
+
+══════════════════════════════════════════════════════════════════
+                     3. FILE STRUCTURE
+══════════════════════════════════════════════════════════════════
+
+src/
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx                    Root layout + providers + fonts
+│   ├── page.tsx                      Landing page (hero + features)
+│   ├── dashboard/
+│   │   └── page.tsx                  Main dashboard (server component shell)
+│   └── api/
+│       └── analyze/
+│           └── route.ts              Single master API endpoint
+│
+├── components/
+│   │
+│   ├── landing/
+│   │   ├── Hero.tsx                  Full-viewport hero with 3D + URL input
+│   │   ├── HowItWorks.tsx            3-step animated flow
+│   │   └── FeatureStrip.tsx          3 feature cards below fold
+│   │
+│   ├── dashboard/
+│   │   ├── DashboardShell.tsx        Client wrapper, Zustand consumer
+│   │   ├── ChannelBanner.tsx         Channel header with all stats
+│   │   ├── KPIRow.tsx                Grid of 4 animated metric cards
+│   │   ├── ChartsSection.tsx         2-column chart layout
+│   │   ├── AreaPerformanceChart.tsx  Views/Likes/Comments over time
+│   │   ├── RadarHealthChart.tsx      Channel health radar
+│   │   ├── TopVideosBarChart.tsx     Horizontal top 10 bar chart
+│   │   ├── CadenceLineChart.tsx      Upload frequency over time
+│   │   ├── AIInsightsPanel.tsx       4 AI insight cards
+│   │   ├── VideoSection.tsx          Filter bar + table/card list
+│   │   ├── FilterBar.tsx             Search, sort, time, duration filters
+│   │   ├── VideoRow.tsx              Desktop table row
+│   │   ├── VideoCard.tsx             Mobile card layout
+│   │   ├── VideoDrawer.tsx           Slide-in detail panel (Radix Dialog)
+│   │   └── ExportModal.tsx           Export CSV/PDF modal (Radix Dialog)
+│   │
+│   ├── layout/
+│   │   ├── Navbar.tsx                Sticky glass top nav
+│   │   └── Footer.tsx                Minimal footer
+│   │
+│   ├── three/
+│   │   └── HeroGlobe.tsx             3D rotating wireframe sphere (lazy)
+│   │
+│   └── ui/
+│       ├── GlassCard.tsx             Reusable glass card wrapper
+│       ├── GlowButton.tsx            Primary CTA button
+│       ├── AnimatedNumber.tsx        Count-up number display
+│       ├── SkeletonDashboard.tsx     Full dashboard loading skeleton
+│       ├── TiltCard.tsx              CSS 3D mouse-tilt wrapper
+│       ├── MetricPill.tsx            Colored engagement badge
+│       ├── TrendBadge.tsx            🔥⚡👑 trending indicators
+│       ├── Toast.tsx                 Toast notification system
+│       └── EmptyState.tsx            Empty/error state component
+│
+├── lib/
+│   ├── youtube.ts                    All YouTube Data API v3 functions
+│   ├── insights.ts                   Algorithmic + GPT-4o AI insights
+│   ├── analytics.ts                  Metric calculations + scoring
+│   ├── export.ts                     CSV blob + print PDF functions
+│   └── utils.ts                      formatNumber, parseDuration, cn, etc.
+│
+├── store/
+│   └── useStore.ts                   Zustand store (all state + actions)
+│
+├── types/
+│   └── index.ts                      All TypeScript interfaces
+│
+└── hooks/
+    ├── useTilt.ts                    Mouse-tracking 3D tilt effect
+    └── useCountUp.ts                 Animated number count-up
+
+══════════════════════════════════════════════════════════════════
+                     4. ENVIRONMENT VARIABLES
+══════════════════════════════════════════════════════════════════
+
+.env.local:
+  YOUTUBE_API_KEY=           ← YouTube Data API v3 key (optional, demo fallback)
+  OPENAI_API_KEY=            ← GPT-4o for AI insights (optional, algo fallback)
+  NEXT_PUBLIC_APP_NAME=VidMetrics
+
+Both vars are OPTIONAL. App must work in full demo mode without them.
+
+══════════════════════════════════════════════════════════════════
+             5. TYPES (types/index.ts) — BUILD THIS FIRST
+══════════════════════════════════════════════════════════════════
+
+export interface ChannelData {
+  id: string
+  handle: string
+  title: string
+  description: string
+  thumbnailUrl: string
+  bannerUrl?: string
+  subscriberCount: number
+  totalViewCount: number
+  videoCount: number
+  createdAt: string
+  country?: string
+  uploadPlaylistId: string
+  healthScore: number          // 0-100 composite
+  avgEngagementRate: number    // across all fetched videos
+}
+
+export interface VideoData {
+  id: string
+  title: string
+  thumbnailUrl: string
+  description: string
+  publishedAt: string
+  durationIso: string          // "PT8M23S"
+  durationSeconds: number      // 503
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  engagementRate: number       // (likes + comments) / views * 100
+  engagementTier: 'high' | 'normal' | 'low'
+  relativeViewScore: number    // 0-100 vs max in dataset
+  isRecent: boolean            // published < 30 days
+  isTrending: boolean          // recent + views > 1.5× dataset avg
+  isTopAllTime: boolean        // #1 by viewCount
+  publishMonth: string         // "Jan 2025" for charting
+  keywords: string[]           // extracted from title
+  youtubeUrl: string           // https://youtube.com/watch?v=...
+}
+
+export interface InsightCard {
+  id: string
+  type: 'strategy' | 'timing' | 'formula' | 'trajectory'
+  icon: string
+  title: string
+  body: string
+  stat?: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+export interface AnalysisResult {
+  channel: ChannelData
+  videos: VideoData[]
+  insights: InsightCard[]
+  fetchedAt: string
+  isDemo: boolean
+}
+
+export type SortKey = 
+  'viewCount' | 'likeCount' | 'commentCount' | 
+  'engagementRate' | 'publishedAt' | 'durationSeconds'
+
+export type TimeRange = 'all' | '7d' | '30d' | '90d'
+export type DurationFilter = 'all' | 'short' | 'medium' | 'long'
+export type ChartMetric = 'views' | 'likes' | 'comments' | 'engagement'
+
+══════════════════════════════════════════════════════════════════
+                  6. YOUTUBE API ENGINE (lib/youtube.ts)
+══════════════════════════════════════════════════════════════════
+
+const YT = 'https://www.googleapis.com/youtube/v3'
+const KEY = process.env.YOUTUBE_API_KEY
+
+Build these functions:
+
+─── parseChannelInput(input: string): { param: string; value: string } ───
+Handle all YouTube URL formats:
+  https://youtube.com/@handle       → { param: 'forHandle',  value: '@handle' }
+  https://youtube.com/channel/UCxxx → { param: 'id',         value: 'UCxxx' }
+  https://youtube.com/c/custom      → { param: 'forUsername', value: 'custom' }
+  https://youtube.com/user/legacy   → { param: 'forUsername', value: 'legacy' }
+  Plain @handle                     → { param: 'forHandle',  value: '@handle' }
+  Plain UCxxx                       → { param: 'id',         value: 'UCxxx' }
+Throw { code: 'INVALID_URL' } if none match.
+
+─── fetchChannel(input: string): Promise<ChannelData> ────────────────────
+Call: GET /channels?part=snippet,statistics,contentDetails&{param}={value}&key={KEY}
+Map response.items[0] to ChannelData interface.
+Throw { code: 'CHANNEL_NOT_FOUND' } if items is empty.
+Throw { code: 'QUOTA_EXCEEDED' } if HTTP 403.
+Throw { code: 'API_ERROR', message } for other errors.
+
+─── fetchVideoIds(playlistId: string, max = 50): Promise<string[]> ───────
+Call: GET /playlistItems?part=contentDetails&playlistId={id}&maxResults=50&key={KEY}
+Return array of videoIds from items[].contentDetails.videoId
+Handle pagination token for up to 50 results (single page is fine for MVP).
+
+─── fetchVideoDetails(videoIds: string[]): Promise<RawVideo[]> ───────────
+Chunk videoIds into arrays of 50.
+For each chunk: GET /videos?part=snippet,statistics,contentDetails&id={ids}&key={KEY}
+Flatten all results.
+Map each item to VideoData interface, computing:
+  - durationSeconds: parse ISO 8601 duration (PT8M23S → 503)
+  - engagementRate: (likeCount + commentCount) / viewCount * 100
+  - isRecent: publishedAt within last 30 days
+  - youtubeUrl: https://youtube.com/watch?v={id}
+  - keywords: extract top 3 meaningful words from title (exclude stop words)
+
+─── enrichVideos(videos: VideoData[]): VideoData[] ───────────────────────
+After fetching, add derived fields:
+  - relativeViewScore: (viewCount / maxViewCount) * 100
+  - isTrending: isRecent && viewCount > (avgViewCount * 1.5)
+  - isTopAllTime: index === 0 after sorting by viewCount
+  - engagementTier: 
+      engagementRate > 5 → 'high'
+      engagementRate > 2 → 'normal'
+      else → 'low'
+  - publishMonth: format(parseISO(publishedAt), 'MMM yyyy')
+
+══════════════════════════════════════════════════════════════════
+               7. ANALYTICS ENGINE (lib/analytics.ts)
+══════════════════════════════════════════════════════════════════
+
+export function calculateHealthScore(channel: ChannelData, videos: VideoData[]): number
+  Score 0-100 from 5 weighted components:
+  1. Engagement rate (30%): avgEngagement / 5 * 100 (capped at 100)
+  2. Upload consistency (20%): 1 if posts at least monthly, scale down
+  3. View/subscriber ratio (20%): avgViews / subscriberCount * 100 (capped)
+  4. Recent activity (15%): % of videos published in last 90 days
+  5. View growth trend (15%): compare first-half vs second-half avg views
+  Return Math.min(100, Math.round(weighted sum))
+
+export function getTopVideos(videos: VideoData[], n = 10): VideoData[]
+  Sort by viewCount desc, return top n
+
+export function getRecentVideos(videos: VideoData[], days = 30): VideoData[]
+  Filter publishedAt within last {days} days
+
+export function getAvgMetric(videos: VideoData[], key: keyof VideoData): number
+  Return mean of numeric field across all videos
+
+export function getChartData(videos: VideoData[], metric: ChartMetric): ChartPoint[]
+  Sort videos by publishedAt ascending
+  Map to { date: publishMonth, value: metric-value, title: truncated-title }
+  Aggregate by month if > 30 videos (sum views per month)
+
+export function getUploadCadenceData(videos: VideoData[]): CadencePoint[]
+  Group videos by publishMonth
+  Return [{ month: string, uploads: number, avgViews: number }]
+
+══════════════════════════════════════════════════════════════════
+                  8. AI INSIGHTS ENGINE (lib/insights.ts)
+══════════════════════════════════════════════════════════════════
+
+export async function generateInsights(
+  channel: ChannelData, 
+  videos: VideoData[]
+): Promise<InsightCard[]>
+
+Try Mode 1 (GPT-4o) first if OPENAI_API_KEY exists.
+If it fails, times out (8s), or key is missing → use Mode 2.
+
+────── MODE 1: GPT-4o API Call ──────────────────────────────────
+
+POST https://api.openai.com/v1/chat/completions
+
+System message:
+"You are a YouTube content strategist AI. Analyze channel data and return 
+a JSON array of exactly 4 insight objects with this exact shape:
+[{ type: 'strategy'|'timing'|'formula'|'trajectory', icon: emoji, 
+   title: string (max 8 words), body: string (max 30 words, specific with 
+   numbers), stat: string (key metric), confidence: 'high'|'medium'|'low' }]
+Be specific. Use actual numbers from the data. No vague statements."
+
+User message: JSON.stringify({ 
+  channelTitle: channel.title,
+  subscriberCount: channel.subscriberCount,
+  videoCount: videos.length,
+  avgEngagement: channel.avgEngagementRate,
+  videos: videos.slice(0, 20).map(v => ({
+    title: v.title, views: v.viewCount, likes: v.likeCount,
+    comments: v.commentCount, published: v.publishedAt,
+    duration: v.durationSeconds
+  }))
+})
+
+Parse JSON from response.choices[0].message.content
+Validate shape, return InsightCard[]
+
+────── MODE 2: Algorithmic Insights ─────────────────────────────
+
+Always works. Build 4 insights from pure data math:
+
+INSIGHT 1 — CONTENT STRATEGY (type: 'strategy', icon: '🎯'):
+  - Tokenize all titles, remove stop words, count word frequency
+  - stopWords = ['the','a','an','in','on','at','how','to','my','your','i',
+                 'and','or','of','this','is','are','was','for','with','what']
+  - Find top 3 keywords (e.g. "review", "tutorial", "reaction")
+  - Count videos containing each keyword → percentage
+  - title: "Content Strategy Pattern"
+  - body: "'{top keyword}' content makes up {X}% of videos, 
+           averaging {Y% more/less} views than channel average."
+  - stat: `${X}% keyword concentration`
+
+INSIGHT 2 — UPLOAD TIMING (type: 'timing', icon: '📅'):
+  - Map each video's publishedAt to day-of-week (0=Sun...6=Sat)
+  - Count uploads per day → find peak day
+  - Calculate avg viewCount for videos on peak day vs others
+  - Compute avg days between uploads (total days span / video count)
+  - title: "Optimal Upload Pattern"
+  - body: "Posts every {X.X} days. {DayName} uploads average 
+           {Y}% more views than other days."
+  - stat: `Every ${X} days avg`
+
+INSIGHT 3 — TOP VIDEO FORMULA (type: 'formula', icon: '🔥'):
+  - Take top 5 videos by viewCount
+  - Analyze: avg duration, title length, common prefix patterns
+  - Check if top videos have numbers in title (count/total)
+  - Check if duration is 8-15 min (sweet spot)
+  - title: "Top Video Formula"
+  - body: "Best videos average {X} min runtime with {Y}-word titles. 
+           {Z}% include a number in the title."
+  - stat: `${X} min avg runtime`
+
+INSIGHT 4 — GROWTH TRAJECTORY (type: 'trajectory', icon: '📈'):
+  - Sort videos by publishedAt
+  - Split into two halves: older vs newer
+  - Compare avg viewCount: older half vs newer half
+  - Calculate % change → direction and magnitude
+  - title: "Growth Trajectory Signal"
+  - body: "Recent videos avg {X}% {more/fewer} views than older content. 
+           Channel is in {acceleration/deceleration/stable} phase."
+  - stat: `${sign}${X}% view trend`
+
+══════════════════════════════════════════════════════════════════
+                    9. MASTER API ROUTE
+                  (app/api/analyze/route.ts)
+══════════════════════════════════════════════════════════════════
+
+export const runtime = 'edge'
+
+GET /api/analyze?url={channelUrl}
+
+Logic:
+1. Read url from searchParams. If missing → 400 { error: 'MISSING_URL' }
+
+2. If YOUTUBE_API_KEY is missing or url === 'demo':
+   → Return DEMO_DATA (hardcoded realistic dataset — see below)
+
+3. Try/catch the full pipeline:
+   a. channel = await fetchChannel(url)
+   b. videoIds = await fetchVideoIds(channel.uploadPlaylistId, 50)
+   c. rawVideos = await fetchVideoDetails(videoIds)
+   d. videos = enrichVideos(rawVideos)
+   e. channel.avgEngagementRate = avg of videos[].engagementRate
+   f. channel.healthScore = calculateHealthScore(channel, videos)
+   g. insights = await generateInsights(channel, videos)
+   h. Return NextResponse.json({ channel, videos, insights, 
+                                  fetchedAt: new Date().toISOString(),
+                                  isDemo: false }, 
+                               { headers: { 'Cache-Control': 's-maxage=3600' } })
+
+4. Catch errors → map error.code to user-friendly response:
+   CHANNEL_NOT_FOUND → 404, "We couldn't find that channel. Check the URL."
+   QUOTA_EXCEEDED    → 429, "YouTube API daily limit reached. Try again tomorrow."
+   INVALID_URL       → 400, "Please enter a valid YouTube channel URL."
+   default           → 500, "Something went wrong. Please try again."
+
+────── DEMO_DATA (inline constant in route.ts) ──────────────────
+
+Hardcoded AnalysisResult with:
+- channel: Realistic channel named "TechVision Pro", 2.4M subscribers,
+  124M total views, 89 videos, health score 78, avg engagement 3.2%
+- videos: Array of 25 VideoData objects with varied realistic stats:
+  Views ranging 50K to 8.2M, mix of recent/old, trending/normal
+  Titles like: "I Tested 10 AI Tools — Here's the Truth",
+               "Why Everyone's Wrong About ChatGPT", 
+               "The Complete Guide to Prompt Engineering (2025)",
+               etc. Make them sound real and relevant.
+  Durations ranging 4:30 to 22:15
+  Some marked isTrending:true, one isTopAllTime:true
+- insights: 4 pre-written InsightCard objects based on demo data
+- isDemo: true
+
+══════════════════════════════════════════════════════════════════
+              10. ZUSTAND STORE (store/useStore.ts)
+══════════════════════════════════════════════════════════════════
+
+interface State {
+  // Data
+  result: AnalysisResult | null
+  isLoading: boolean
+  loadingStage: string            // "Fetching channel..." etc.
+  error: string | null
+  inputUrl: string
+
+  // Filters
+  sortKey: SortKey
+  sortDir: 'asc' | 'desc'
+  searchQuery: string
+  timeRange: TimeRange
+  durationFilter: DurationFilter
+  activeChartMetric: ChartMetric
+  
+  // UI
+  selectedVideoId: string | null
+  drawerOpen: boolean
+  exportModalOpen: boolean
+  toasts: Toast[]
+
+  // Computed (as actions that return derived values)
+  getFilteredVideos: () => VideoData[]
+  getTopVideos: () => VideoData[]
+}
+
+Actions:
+  setInputUrl(url: string)
+  analyze(url: string): async → sets loading stages, calls /api/analyze, 
+                                populates result or sets error
+  setSortKey(key: SortKey)
+  toggleSortDir()
+  setSearchQuery(q: string)
+  setTimeRange(r: TimeRange)
+  setDurationFilter(f: DurationFilter)
+  setActiveChartMetric(m: ChartMetric)
+  openDrawer(videoId: string)
+  closeDrawer()
+  setExportModalOpen(open: boolean)
+  addToast(toast: Omit<Toast, 'id'>)
+  removeToast(id: string)
+  reset()
+
+getFilteredVideos() implementation:
+  Start with result?.videos ?? []
+  Apply timeRange filter (compare publishedAt to now)
+  Apply durationFilter: short < 300s, medium 300-900s, long > 900s
+  Apply searchQuery: title.toLowerCase().includes(query.toLowerCase())
+  Apply sort by sortKey in sortDir direction
+  Return filtered+sorted array
+
+Loading stages sequence (in analyze action):
+  "Resolving channel URL..." (0ms)
+  "Fetching channel data..." (immediate)
+  "Loading video list..." (after channel resolves)
+  "Calculating metrics..." (after videos resolve)
+  "Generating AI insights..." (final stage)
+  → Set each stage with 400ms delay for visual feedback
+
+══════════════════════════════════════════════════════════════════
+              11. HOOKS (hooks/)
+══════════════════════════════════════════════════════════════════
+
+──── useTilt.ts ─────────────────────────────────────────────────
+const useTilt = (maxTilt = 12) => {
+  // Track mouse position relative to element center
+  // Compute rotateX (vertical tilt) and rotateY (horizontal tilt)
+  // Return { ref, style: { transform: perspective(800px) rotateX() rotateY(),
+  //                        transition: '200ms ease' } }
+  // Reset on mouse leave
+}
+
+──── useCountUp.ts ──────────────────────────────────────────────
+const useCountUp = (target: number, duration = 1200, enabled = true) => {
+  // Uses requestAnimationFrame + easeOutExpo easing
+  // Only triggers when enabled becomes true (intersection observer)
+  // Returns current animated value as number
+  // Format outside this hook
+}
+
+══════════════════════════════════════════════════════════════════
+              12. UI PRIMITIVES (components/ui/)
+══════════════════════════════════════════════════════════════════
+
+──── GlassCard.tsx ──────────────────────────────────────────────
+Props: className?, children, hover?: boolean, glow?: 'blue'|'cyan'|'violet'
+Renders a div with glass styles + optional hover animation (Framer Motion)
+When glow is set, adds matching box-shadow on hover
+
+──── TiltCard.tsx ───────────────────────────────────────────────
+Wraps children with useTilt hook
+Passes style to inner div with perspective transform
+
+──── GlowButton.tsx ─────────────────────────────────────────────
+Props: onClick, children, loading?, disabled?, size?: 'sm'|'md'|'lg', variant?
+Variants: 'primary' (blue glow), 'ghost' (outline only), 'danger' (red)
+Loading: shows Loader2 spinning icon + "Analyzing..." text
+Full Framer Motion hover/tap animations
+
+──── AnimatedNumber.tsx ─────────────────────────────────────────
+Props: value: number, formatter?: (n: number) => string, duration?
+Uses useCountUp hook
+Default formatter: formatNumber(n)
+
+──── MetricPill.tsx ─────────────────────────────────────────────
+Props: tier: 'high'|'normal'|'low', value: string
+high  → bg-green/10 text-green border-green/20 "↑ High"
+normal → bg-blue/10 text-cyan border-cyan/20 "— Normal"
+low   → bg-void text-text-muted border-border "↓ Low"
+
+──── TrendBadge.tsx ─────────────────────────────────────────────
+Props: video: VideoData
+Logic:
+  if isTopAllTime → "👑 Top Video" (amber)
+  else if isTrending → "🔥 Trending" (orange-ish)
+  else if isRecent → "✨ New" (blue)
+  else → null (render nothing)
+
+──── Toast.tsx ──────────────────────────────────────────────────
+Fixed bottom-right container (z-50)
+Animated with Framer Motion AnimatePresence
+Types: success (green Check), error (red X), info (blue Info)
+Auto-dismiss after 3000ms
+Slide in from right, fade out upward
+
+──── EmptyState.tsx ─────────────────────────────────────────────
+Props: type: 'no-results'|'error'|'no-videos', message?: string, onAction?
+Each type has unique SVG icon (geometric, on-brand)
+'error' type shows retry button
+
+──── SkeletonDashboard.tsx ──────────────────────────────────────
+Full skeleton of the dashboard during loading:
+  - ChannelBanner skeleton (wide bar + 3 stat boxes)
+  - 4 KPI card skeletons
+  - 2 chart skeletons (different heights)
+  - 8 video row skeletons
+Shimmer effect via CSS animation (not Tailwind animate-pulse — custom)
+
+══════════════════════════════════════════════════════════════════
+              13. THREE.JS GLOBE (components/three/HeroGlobe.tsx)
+══════════════════════════════════════════════════════════════════
+
+dynamic import with ssr: false and Suspense fallback (null)
+
+Canvas:
+  style: position absolute, inset 0, w-full h-full
+  camera: position [0,0,5], fov 45
+  gl: { antialias: true, alpha: true }
+  
+Scene:
+  1. Main sphere (wireframe):
+     <mesh ref={meshRef}>
+       <sphereGeometry args={[2, 28, 28]} />
+       <meshBasicMaterial color="#06b6d4" wireframe transparent opacity={0.25} />
+     </mesh>
+     useFrame: meshRef.current.rotation.y += 0.004
+
+  2. Inner glow sphere:
+     <mesh scale={1.02}>
+       <sphereGeometry args={[2, 16, 16]} />
+       <meshBasicMaterial color="#2563eb" wireframe transparent opacity={0.08} />
+     </mesh>
+
+  3. Data points (12 random positions on sphere surface):
+     For each: small icosahedron mesh, white, pulsing opacity via useFrame
+     Each one slightly different pulse frequency
+
+  4. Ambient light: intensity 0.3
+     Point light: position [5, 5, 5], intensity 1, color #06b6d4
+
+Container div: 
+  relative, overflow-hidden
+  Radial gradient overlay behind canvas: from transparent center to void edges
+  This blends globe into background
+
+══════════════════════════════════════════════════════════════════
+              14. LANDING PAGE (app/page.tsx)
+══════════════════════════════════════════════════════════════════
+
+──── SECTION 1: HERO ────────────────────────────────────────────
+Full viewport height (min-h-screen), overflow hidden
+
+Background layers (absolute positioned):
+  1. bg-void base
+  2. Radial gradient: blue/5 center → transparent, 60% size, top-center
+  3. Grid overlay: repeating-linear-gradient creating subtle dot/line grid
+     (1px lines, border/30 color, 40px spacing)
+
+Layout: flex items-center justify-center px-6 lg:px-16
+Two-column grid on lg+, single column on mobile
+
+LEFT COLUMN:
+  Staggered Framer Motion entrance (container variant with staggerChildren: 0.1)
+  
+  1. Pill badge (animate item):
+     Rounded-full, border-border, bg-surface, px-3 py-1
+     "⚡ AI-Powered Competitor Intelligence"
+     Left dot: w-2 h-2 rounded-full bg-cyan animate-pulse
+
+  2. H1 headline (animate item):
+     "Decode What's Crushing It on YouTube"
+     Font: text-5xl md:text-6xl font-bold tracking-tight text-text-primary
+     Line 2 "on YouTube" gets gradient text: cyan via blue via violet
+     Use: bg-gradient-to-r from-cyan via-blue to-violet bg-clip-text text-transparent
+
+  3. Subheadline (animate item):
+     "Paste any competitor's channel URL and instantly see which videos
+      are winning — views, engagement, trends, and AI-powered strategy insights."
+     text-lg text-text-secondary max-w-lg
+
+  4. URL Input form (animate item):
+     Full-width glass input + button combo
+     Input styling:
+       w-full bg-surface border border-border rounded-2xl px-5 py-4 pr-36
+       text-text-primary placeholder-text-muted
+       focus: border-blue ring-1 ring-blue/20
+       Valid URL: border-green/40
+       Invalid URL: border-red/40 (only after first blur, not during typing)
+     GlowButton absolutely positioned right inside input (or adjacent):
+       "Analyze →" text, loading state when submitting
+     Below input: subtle hint "Try: youtube.com/@mkbhd or youtube.com/@MrBeast"
+     On submit: validate URL → store.analyze(url) → router.push('/dashboard')
+     Show inline error below input if URL invalid
+
+  5. Social proof (animate item):
+     Row: [5 colored avatar circles] "Trusted by 500+ analytics teams"
+     Stars: ★★★★★ "4.9/5"
+
+RIGHT COLUMN (hidden on mobile, lg:block):
+  Relative positioned container, height 500px
+  HeroGlobe component (lazy loaded Three.js)
+  Floating stat cards (abs positioned, animated float):
+    Top-right: glass card "8.2M views" "👀 Top video this month"
+    Bottom-left: glass card "94%" "🎯 Engagement score"
+    These float up/down subtly via Framer Motion yoyo animation
+
+──── SECTION 2: HOW IT WORKS ────────────────────────────────────
+py-24, max-w-4xl mx-auto, text-center
+
+Heading: "From URL to insights in seconds"
+Subheading: "No setup. No signup. Just results."
+
+3-step row with connecting animated line:
+  Step 1: Paste URL icon (Link), "Paste Channel URL"
+  Step 2: Brain icon, "AI Analyzes Data"
+  Step 3: BarChart icon, "Get Instant Insights"
+
+Each step: numbered circle (1/2/3), icon, title, description
+Connecting line: CSS ::after pseudo with dashed border, fades in via Framer
+Animate in on scroll (use Framer Motion whileInView)
+
+──── SECTION 3: FEATURE STRIP ───────────────────────────────────
+3 GlassCard components in a row (stack on mobile):
+  Card 1 (blue glow): BarChart3 icon — "Video Performance Analytics"
+    "Views, likes, comments, engagement rates — sorted, filtered, visualized."
+  Card 2 (violet glow): Brain icon — "AI Content Intelligence"
+    "Pattern detection, timing analysis, and strategic recommendations."
+  Card 3 (cyan glow): Download icon — "Export & Share Reports"
+    "Download CSV data or PDF snapshot to share with your team."
+Each animates in with stagger on scroll (whileInView)
+
+══════════════════════════════════════════════════════════════════
+              15. DASHBOARD PAGE (app/dashboard/page.tsx)
+══════════════════════════════════════════════════════════════════
+
+Server component that renders DashboardShell (client component)
+Pass no initial data — shell reads from Zustand store
+If store has no result and no loading, redirect to '/'
+
+DashboardShell.tsx (client, 'use client'):
+  Reads state from useStore
+  
+  If isLoading → render SkeletonDashboard with loadingStage text
+  If error → render full-page error state with retry button
+  If !result → redirect to '/'
+  If result → render full dashboard
+
+  DEMO banner (if result.isDemo):
+    Fixed top bar (below navbar): yellow/amber gradient
+    "🎮 Demo Mode — Showing sample data. Add your YouTube API key to analyze real channels."
+    Dismiss button (X)
+
+  Dashboard layout: flex flex-col gap-8 px-4 md:px-8 py-8 max-w-[1400px] mx-auto
+
+  Sections in order:
+    <ChannelBanner />
+    <KPIRow />
+    <ChartsSection />        ← Area chart + Radar chart (2-col)
+    <AIInsightsPanel />
+    <VideoSection />         ← FilterBar + Video Table/Cards
+    <SecondaryCharts />      ← TopVideosBarChart + CadenceLineChart (2-col)
+
+══════════════════════════════════════════════════════════════════
+              16. CHANNEL BANNER (components/dashboard/ChannelBanner.tsx)
+══════════════════════════════════════════════════════════════════
+
+Full-width GlassCard with relative positioning
+
+Background subtle gradient: blue/5 → transparent left-to-right
+
+Layout (flex, items-center, gap-6, flex-wrap on mobile):
+
+LEFT: Avatar + Identity
+  - Channel thumbnail: w-20 h-20 rounded-2xl ring-2 ring-blue/30
+    Next.js Image component, priority
+  - Stack: channel title (H1), @handle (text-text-muted), country badge
+  - "Analyzed just now" with Clock icon, text-xs text-text-muted
+
+CENTER: Description
+  - 2-line truncated description
+  - "Show more" text button that expands inline
+
+RIGHT: Stats row (grid grid-cols-2 md:grid-cols-4 gap-4)
+  Each stat cell:
+    <AnimatedNumber value={subscriberCount} /> + formatNumber
+    text-xs uppercase tracking-wide label below
+  Stats: Subscribers | Total Views | Videos | Avg Engagement
+  Vertical dividers between on desktop
+
+TOP-RIGHT corner: "Re-analyze" ghost button with RefreshCw icon
+
+══════════════════════════════════════════════════════════════════
+              17. KPI ROW (components/dashboard/KPIRow.tsx)
+══════════════════════════════════════════════════════════════════
+
+grid grid-cols-2 lg:grid-cols-4 gap-4
+
+Each KPI card wrapped in TiltCard (3D tilt on hover):
+
+Card 1 — BEST VIDEO VIEWS (glow: cyan)
+  Icon: Eye (cyan)
+  Value: <AnimatedNumber value={topVideo.viewCount} />
+  Label: "Top Video Views"
+  Sub: topVideo.title (truncated 30 chars, link to YouTube)
+  Trend: "+{X}% vs avg"
+
+Card 2 — AVG ENGAGEMENT (glow: green)
+  Icon: TrendingUp (green)
+  Value: <AnimatedNumber value={avgEngagementRate} formatter={(n) => n.toFixed(1) + '%'} />
+  Label: "Avg Engagement Rate"
+  Trend pill: "High" / "Normal" / "Low"
+
+Card 3 — UPLOAD VELOCITY (glow: violet)
+  Icon: Zap (violet)
+  Value: <AnimatedNumber value={recentVideoCount} />
+  Label: "Videos (Last 30 Days)"
+  Sub: "Every {X} days avg"
+
+Card 4 — CHANNEL HEALTH (glow: amber)
+  Icon: Activity (amber)
+  Value: <AnimatedNumber value={healthScore} formatter={(n) => n + '/100'} />
+  Label: "Channel Health Score"
+  Circular progress ring (SVG): 
+    cx/cy 20, r 16, stroke-dasharray/dashoffset to show score %
+    Color: green if > 70, amber if > 40, red otherwise
+
+Card internal layout:
+  p-5, flex flex-col gap-3
+  Top row: icon (w-9 h-9 rounded-xl bg-[color]/10 p-2) + trend badge
+  Middle: large AnimatedNumber value
+  Bottom: label (caption style) + sub text
+
+══════════════════════════════════════════════════════════════════
+              18. CHARTS SECTION
+══════════════════════════════════════════════════════════════════
+
+──── AreaPerformanceChart.tsx ────────────────────────────────────
+GlassCard, p-6
+
+Header row:
+  Left: "Performance Over Time" H2
+  Right: 4 toggle pills [Views] [Likes] [Comments] [Engagement]
+  Active pill: bg-blue text-white | Inactive: bg-surface text-text-muted hover:bg-elevated
+
+Data from: getChartData(videos, activeChartMetric)
+
+Recharts ResponsiveContainer height={280}:
+  AreaChart data={chartData}
+  defs: linearGradient id="areaGradient" from cyan/60 to cyan/0
+  Area: dataKey="value" stroke="#06b6d4" fill="url(#areaGradient)" strokeWidth={2}
+  XAxis: dataKey="date" tick={color: #475569, fontSize: 11} axisLine={false} tickLine={false}
+  YAxis: tickFormatter={formatNumber} tick={color: #475569, fontSize: 11} axisLine={false} tickLine={false}
+  CartesianGrid: strokeDasharray="3 3" stroke="#162338" vertical={false}
+  Tooltip: custom component (dark glass box, shows title + formatted value + date)
+  Smooth animation: isAnimationActive={true} animationDuration={800}
+
+When metric changes: animate chart re-render (Framer Motion opacity 0→1 on container)
+
+──── RadarHealthChart.tsx ────────────────────────────────────────
+GlassCard, p-6
+
+Left side (60%): Recharts RadarChart
+  5 axes: View Volume | Engagement | Upload Rate | Consistency | Reach
+  Each normalized 0-100 from analytics calculations
+  PolarGrid: stroke="#162338"
+  PolarAngleAxis: tick color text-muted, fontSize 11
+  Radar: fill="#06b6d4" fillOpacity={0.15} stroke="#06b6d4" strokeWidth={2}
+
+Right side (40%): Health Score Display
+  Large circular score (SVG, same as KPI card but bigger: r=40)
+  Score number below circle
+  5 sub-scores as mini progress bars with labels
+
+──── TopVideosBarChart.tsx ──────────────────────────────────────
+GlassCard, p-6
+Title: "Top 10 Videos by Views"
+
+Recharts BarChart layout="vertical" height={320}:
+  data: getTopVideos(videos, 10).map(v => ({ name: v.title.slice(0,35)+'...', views: v.viewCount, id: v.id }))
+  Bar: dataKey="views" fill="#2563eb" radius={[0,4,4,0]}
+    Top bar: fill="#06b6d4" (brightest, most views)
+  XAxis: tickFormatter={formatNumber}
+  YAxis: dataKey="name" width={160} tick={fontSize:10}
+  Tooltip: custom glass tooltip
+
+──── CadenceLineChart.tsx ───────────────────────────────────────
+GlassCard, p-6
+Title: "Upload Cadence & Performance"
+Toggle: [Upload Count] [Avg Views]
+
+Recharts LineChart with two lines (both always rendered, toggle switches visible):
+  Line 1: uploads per month (violet) — left Y-axis
+  Line 2: avgViews per month (cyan) — right Y-axis
+  ComposedChart for dual-axis support
+  Legend: custom below chart
+
+══════════════════════════════════════════════════════════════════
+              19. AI INSIGHTS PANEL
+              (components/dashboard/AIInsightsPanel.tsx)
+══════════════════════════════════════════════════════════════════
+
+Full-width GlassCard with violet/40 gradient border (::before pseudo)
+Header: 
+  Left: Sparkles icon (violet glow) + "AI Content Intelligence" H2
+  Right: small badge: "GPT-4o powered" (if OPENAI env exists) or "Algorithmic" (fallback)
+        Info tooltip explaining what each means
+
+4 insight cards in grid (grid-cols-1 md:grid-cols-2 gap-4):
+  Each card (GlassCard, p-4):
+    Top row: {icon} emoji large + {confidence} badge (high=green, medium=amber, low=gray)
+    Title: H3, text-text-primary
+    Body: text-sm text-text-secondary
+    Stat pill: font-mono text-cyan text-xs bg-cyan/10 px-2 py-1 rounded-full
+    Bottom row: "Copy insight" button (clipboard icon, ghost, xs)
+      On click: copies body text → toast "Copied to clipboard ✓"
+
+Entrance: stagger animation, each card delays 0.1s
+
+If insights still loading (rare — usually comes with main data):
+  Show 4 skeleton cards with shimmer
+
+══════════════════════════════════════════════════════════════════
+              20. VIDEO SECTION + FILTER BAR
+══════════════════════════════════════════════════════════════════
+
+──── FilterBar.tsx ──────────────────────────────────────────────
+Row layout (flex-wrap gap-3 items-center):
+
+Left group:
+  Search input: 
+    Icon: Search (lucide), left padded
+    Placeholder: "Search videos..."
+    Controlled by store.searchQuery
+    Real-time (no debounce needed for client-side filter)
+    Clear button (X) appears when value is not empty
+
+Middle group (pills):
+  Time range: [All] [7 Days] [30 Days] [90 Days]
+  Duration:   [Any] [< 5min] [5-15min] [> 15min]
+  Each pill: text-xs, rounded-full, px-3 py-1
+  Active: bg-blue/20 text-blue border-blue/30
+  Inactive: bg-surface text-text-muted border-border hover:border-blue/30
+
+Right group:
+  Sort Radix Select:
+    Trigger: sort icon + current sort label, glass style
+    Options: Views ↓ | Views ↑ | Likes | Comments | Engagement | Newest | Oldest | Duration
+  "Clear Filters" ghost button — only visible when any filter is active
+
+Below FilterBar: "Showing {filtered} of {total} videos" text-xs text-text-muted
+
+──── VideoSection.tsx ───────────────────────────────────────────
+Parent renders:
+  - Section header: "📹 Video Performance" + video count badge + "Export" ghost button
+  - <FilterBar />
+  - Desktop (md+): full table layout
+  - Mobile (< md): card grid layout
+  Both animate in with stagger
+
+──── VideoRow.tsx (desktop table) ───────────────────────────────
+Table layout (not div-grid):
+<table className="w-full">
+  <thead>: 
+    Columns: # | Video | Views | Likes | Comments | Engagement | Duration | Published | Trend
+    All column headers are clickable to sort (shows active sort arrow)
+    text-xs uppercase tracking-wide text-text-muted, border-b border-border
+
+  <tbody> (map filteredVideos):
+    Each <tr>:
+      cursor-pointer hover:bg-elevated/50 transition-colors
+      onClick: store.openDrawer(video.id)
+      
+      # cell: rank number, font-mono text-text-muted
+      Video cell (max-w-xs):
+        - Next.js Image thumbnail: w-20 h-12 rounded-lg object-cover
+          On hover: scale-105 transition (CSS, not Framer for perf)
+          Overlay: play button icon fades in on hover
+        - Right of thumbnail: 
+            Title (2-line clamp, text-sm font-medium text-text-primary)
+            <TrendBadge video={video} />
+      Views: <AnimatedNumber />, font-mono, + relative mini-bar (div width = relativeViewScore%)
+      Likes: formatted, text-text-secondary
+      Comments: formatted, text-text-secondary
+      Engagement: <MetricPill tier={engagementTier} value={engagementRate.toFixed(1)+'%'} />
+      Duration: font-mono text-text-muted
+      Published: timeAgo(publishedAt) with Tooltip showing exact date
+      Actions: External link icon button (opens YouTube in new tab)
+
+  Pagination: "Load More" button at bottom
+    Shows next 20 videos, animates new rows in with stagger
+
+──── VideoCard.tsx (mobile card) ────────────────────────────────
+GlassCard with aspect-video thumbnail at top
+Thumbnail: full width, rounded-t-2xl, relative with rank badge (abs top-left)
+Body (p-4):
+  Title: 2-line clamp, font-medium
+  <TrendBadge /> if applicable
+  Stats row: Eye icon + views | ThumbsUp icon + likes | TrendingUp + engagement%
+  Footer: clock icon + published time | timer icon + duration
+
+══════════════════════════════════════════════════════════════════
+              21. VIDEO DRAWER (components/dashboard/VideoDrawer.tsx)
+══════════════════════════════════════════════════════════════════
+
+Radix Dialog — custom overlay + content styling
+When open (store.drawerOpen && store.selectedVideoId):
+  Find video from store.result.videos
+
+Backdrop: fixed inset-0 bg-black/60 backdrop-blur-sm
+Panel: fixed right-0 top-0 h-full w-full max-w-md bg-surface border-l border-border p-0
+  Framer Motion: initial {x: '100%'} animate {x:0} exit {x:'100%'} spring 350ms
+
+Panel content (overflow-y-auto h-full p-6 flex flex-col gap-6):
+  Header: 
+    X close button (top-right)
+    Video thumbnail (16:9, rounded-2xl, w-full)
+    Play overlay: clicking opens YouTube in new tab
+  
+  Identity:
+    Title (H2)
+    Published date (full format) + duration
+    <TrendBadge />
+  
+  Metrics grid (2×2):
+    Views | Likes | Comments | Engagement %
+    Each: AnimatedNumber + icon + label
+  
+  Performance vs Channel Average:
+    3 comparison bars:
+      "Views vs Avg" — this video vs channel mean (percentage, colored bar)
+      "Likes vs Avg" — same
+      "Engagement vs Avg" — same
+    Bar: gray bg, blue fill = min(this/avg * 50%, 100%), shows +X% or -X%
+  
+  Description (collapsible, 3 lines max → expand):
+    text-sm text-text-secondary
+  
+  Footer:
+    GlowButton: "Watch on YouTube →" (full width, opens in new tab)
+
+══════════════════════════════════════════════════════════════════
+              22. EXPORT MODAL (components/dashboard/ExportModal.tsx)
+══════════════════════════════════════════════════════════════════
+
+Radix Dialog, centered, max-w-sm
+Dark glass styling: bg-surface border-border backdrop-blur-xl
+
+Title: "Export Analysis" with Download icon
+Subtitle: channel name + video count
+
+Three export options (stacked, each as a clickable card):
+
+Option 1 — CSV Export:
+  Icon: Sheet (green), "Download CSV", "All video data as spreadsheet"
+  On click:
+    Build CSV string from filteredVideos (or all videos if no filter)
+    Columns: Title, Views, Likes, Comments, Engagement%, Duration, Published, URL
+    Blob download: `vidmetrics-{channelHandle}-{date}.csv`
+    Toast: "✓ CSV downloaded"
+
+Option 2 — PDF Snapshot:
+  Icon: FileText (blue), "Save as PDF", "Print-ready report"
+  On click: window.print()
+  Note: Add @media print CSS that shows clean version of dashboard
+
+Option 3 — Copy Share Link:
+  Icon: Link (violet), "Copy Share Link", "Share this analysis"
+  On click: 
+    Build URL: `${window.location.origin}/dashboard?url={encodedChannelUrl}`
+    navigator.clipboard.writeText(url)
+    Button text changes to "✓ Copied!" for 2 seconds
+    Toast: "Link copied to clipboard"
+
+Close button at bottom
+
+══════════════════════════════════════════════════════════════════
+              23. NAVBAR (components/layout/Navbar.tsx)
+══════════════════════════════════════════════════════════════════
+
+Fixed top, w-full, z-50
+Default: bg-void/80 backdrop-blur-xl border-b border-transparent
+Scrolled (> 60px): border-b border-border/60, stronger backdrop
+Transition: all 300ms
+
+Inner (max-w-[1400px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between):
+
+LEFT: Logo
+  Zap icon (blue filled) + "VidMetrics" (font-semibold)
+  "Vid" normal weight, "Metrics" gradient text cyan→blue
+  Clickable → router.push('/')
+
+CENTER (dashboard page only, hidden on mobile):
+  Smooth scroll nav links: Overview | Videos | Charts | Insights | Export
+  text-sm text-text-muted hover:text-text-primary transition
+  Active section: text-text-primary (detect via scroll position + section IDs)
+
+RIGHT:
+  API Status indicator (only on dashboard):
+    Green dot + "Live" if not demo
+    Amber dot + "Demo" if demo mode
+  "New Analysis" ghost button (opens URL input modal or navigates to '/')
+  GitHub icon button → href to repo URL placeholder
+
+Mobile: hide center nav, show hamburger → slide-down menu (Framer Motion)
+
+══════════════════════════════════════════════════════════════════
+              24. UTILITY FUNCTIONS (lib/utils.ts)
+══════════════════════════════════════════════════════════════════
+
+export function cn(...inputs: ClassValue[]): string
+  → clsx + tailwind-merge
+
+export function formatNumber(n: number): string
+  → 1234567 → "1.2M" | 45300 → "45.3K" | 999 → "999"
+
+export function formatViews(n: number): string
+  → same but appends " views" for < 1000
+
+export function parseDurationToSeconds(iso: string): number
+  → "PT1H8M23S" → 4103 | "PT8M23S" → 503 | "PT45S" → 45
+
+export function formatDuration(seconds: number): string
+  → 4103 → "1:08:23" | 503 → "8:23" | 45 → "0:45"
+
+export function timeAgo(dateString: string): string
+  → Uses date-fns formatDistanceToNow + "ago" suffix
+  → "just now" for < 1 minute
+
+export function getEngagementColor(rate: number): string
+  → rate > 5: "text-green" | > 2: "text-cyan" | else: "text-text-muted"
+
+export function extractKeywords(title: string): string[]
+  → lowercase, split words, filter stop words, return top 3 by length/freq
+
+export function truncate(str: string, max: number): string
+  → str.length > max ? str.slice(0, max) + '...' : str
+
+export function isValidYouTubeUrl(input: string): boolean
+  → Regex: matches youtube.com/*, youtu.be/*, or starts with @
+
+══════════════════════════════════════════════════════════════════
+              25. RESPONSIVE DESIGN RULES
+══════════════════════════════════════════════════════════════════
+
+Mobile-first Tailwind breakpoints: sm:640 md:768 lg:1024 xl:1280
+
+Specific responsive behaviors:
+
+Landing page:
+  - Hero: flex-col on mobile, grid-cols-[60%_40%] on lg+
+  - Globe: hidden below md, shown md+
+  - Feature cards: col-span-1 stacked on mobile, 3-col on lg+
+
+Dashboard:
+  - KPIRow: 2-col on mobile/sm, 4-col on lg+
+  - Charts: 1-col stacked on mobile, 2-col on lg+
+  - Video table: hidden on mobile, shown on md+
+  - Video cards: shown on mobile, hidden on md+
+  - Drawer: full-screen on mobile (max-w-full), slide-in panel on md+
+  - AI insights: 1-col on mobile, 2-col on md+
+  - Navbar: hamburger on mobile
+
+══════════════════════════════════════════════════════════════════
+              26. PERFORMANCE + SEO
+══════════════════════════════════════════════════════════════════
+
+layout.tsx metadata:
+  title: "VidMetrics — YouTube Competitor Intelligence"
+  description: "Instantly analyze any YouTube channel's top videos..."
+  openGraph: full og:image, og:title, og:description
+  viewport: width=device-width, initial-scale=1
+  themeColor: #03060a
+
+Performance rules:
+  1. Three.js: dynamic(() => import('./HeroGlobe'), { ssr: false })
+  2. Recharts: dynamic imports where possible
+  3. Video thumbnails: Next.js <Image /> with lazy loading
+  4. Channel avatar: Next.js <Image /> with priority={true}
+  5. API route: Cache-Control: s-maxage=3600 header
+  6. No client-side API calls — all YouTube requests go through /api/analyze
+  7. useStore persist: only persist inputUrl, not full result (too large)
+
+══════════════════════════════════════════════════════════════════
+              27. ERROR HANDLING STRATEGY
+══════════════════════════════════════════════════════════════════
+
+URL input errors (inline, below input):
+  Not a URL at all: "Enter a YouTube channel URL to get started"
+  Wrong domain: "This doesn't look like a YouTube URL"
+  Missing handle: "Include the channel handle, e.g. youtube.com/@channel"
+
+API errors (full-page error state with retry):
+  CHANNEL_NOT_FOUND: "Channel not found. Double-check the URL and try again."
+  QUOTA_EXCEEDED: "YouTube API limit reached for today. Try demo mode instead."
+  API_ERROR: "Couldn't connect to YouTube. Please try again in a moment."
+  NETWORK_ERROR: "Network error. Check your connection and retry."
+
+Each error state:
+  - On-brand SVG icon (geometric, no emojis for main errors)
+  - Clear heading + helpful description
+  - "Try Again" button → calls store.analyze(inputUrl)
+  - "Use Demo Mode" secondary button → calls store.analyze('demo')
+
+══════════════════════════════════════════════════════════════════
+              28. README.md (generate this file)
+══════════════════════════════════════════════════════════════════
+
+# VidMetrics 🎬
+
+> YouTube Competitor Intelligence for Enterprise Creators & Agencies
+
+[![Deploy with Vercel](badge)](vercel)  [![License: MIT](badge)]

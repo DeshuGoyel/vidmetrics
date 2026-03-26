@@ -1,0 +1,15 @@
+packages:
+  "framer-motion": "For fluid UI animations, layout transitions, and micro-interactions"
+  "recharts": "For complex data visualization (Area, Line, Bar, Radar charts)"
+  "zustand": "For global state management (filters, selected items, analysis results)"
+  "date-fns": "For formatting dates and calculating time ranges"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility to merge Tailwind CSS classes without style conflicts"
+  "@react-three/fiber": "React renderer for Three.js used for the 3D hero globe"
+  "@react-three/drei": "Useful helpers for react-three-fiber"
+  "three": "Underlying 3D engine for the hero globe"
+
+images: []
+
+notes:
+  - The API endpoint /api/analyze handles both real YouTube data fetching and fallback to a hardcoded demo dataset if the backend lacks an API key. The frontend relies on the `isDemo` flag in the response to show a demo warning banner.
